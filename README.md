@@ -1,1 +1,1 @@
-# power_calculation--J-PAL
+# Guide: Writing power calcuation in R
