@@ -6,25 +6,32 @@ library(samplesize)
 library(compute.es)
 library(foreach)
 library(ICC)
+library(rJava)
 library(xlsx)
 library(ri)
+
 
 #---------------------------------------------------------------------------------
 ############################### EXAMPLE 1: Basic Parametric Example ##############
 #---------------------------------------------------------------------------------
 
+#Let's download the zip file containing the Stata do file and the dataset 
+#and unzip it to your working directory.
+
+setwd("D:/R/J-PAL Power Tutorial") #set working directory
+
+download.file("https://www.povertyactionlab.org/sites/default/files/resources/Power-calculations-stata.zip"
+              , dest="dataset.zip", mode="wb")
+unzip ("dataset.zip", exdir = getwd())
+
 # Let's load the Balsakhi dataset. We'll use this dataset to estimate the control mean.
 
+mydata<-read.dta("D:/R/J-PAL Power Tutorial/Power Calculations_2016/baroda_0102_1obs.dta") 
 
-my_data <- read.csv( "D:/R/Test/baroda_0102_1obs.csv", header = TRUE)
+#view data 
 
-#read .dta file directly
-#mydata_stata<-read.dta("D:/R/Test/baroda_0102_1obs.dta") 
-
-#view data from CSV file
-#View(my_data)
-my_data_table<-data.frame(my_data)
-#View(my_data_table)
+my_data_table<-data.frame(mydata)
+View(my_data_table)
 
 #For all parametric power calculations, we'll assume a conventional 95% confidence
 #interval and 80% power.
@@ -55,7 +62,7 @@ my_effect
 my_sd
 
 #Calculate the sample size. This will be a more improved function
-source("D:/R/Test/sampsi_mean.R")
+source("sample_calculation.R")
 sampsi.mean(my_control,my_treat,sd = my_sd)
 ceiling(nA)
 ceiling(nB)
@@ -92,7 +99,7 @@ my_effect
 
 new_my_effect <- my_effect/2
 new_my_treat <- new_my_effect + my_control
-source("D:/R/Test/sampsi_mean.R")
+source("sample_calculation.R")
 sampsi.mean(my_control,new_my_treat,sd = my_sd)
 
 # Observation: The minimum sample required is four times as large.
@@ -101,7 +108,7 @@ sampsi.mean(my_control,new_my_treat,sd = my_sd)
 
 new_my_effect <- my_effect/3
 new_my_treat <- new_my_effect + my_control
-source("D:/R/Test/sampsi_mean.R")
+source("sample_calculation.R")
 sampsi.mean(my_control,new_my_treat,sd = my_sd)
 
 # Observation: The minimum sample required is now nine times as large.
@@ -151,7 +158,7 @@ res_my_sd
 # If we knew the effect size and wanted to know the sample size needed.
 #The result is different from STATA. Need to check
 
-source("D:/R/Test/sampsi_mean.R")
+source("sample_calculation.R")
 sampsi.mean(my_control,my_treat,sd = res_my_sd)
 
 # Questions:
@@ -350,7 +357,7 @@ data_frame_excel_sorted<- data_frame_excel[order(data_frame_excel$studentid),]
 nrow(testdataframe_merged)
 summary.data.frame(data_frame_excel_sorted)
 nrow(data_frame_excel_sorted)
-setwd("D:/R/Test")
+
 write.csv(data_frame_excel_sorted, "bal_power_data_r.csv", sep = ",", 
           row.names = FALSE, quote =FALSE, na= "NA") #giving a warning.
 
@@ -361,6 +368,10 @@ write.csv(data_frame_excel_sorted, "bal_power_data_r.csv", sep = ",",
 # example and do not stratify (although the actual RCT did stratify).
 
 
+
+
+
+getwd()
 
 #end
 
