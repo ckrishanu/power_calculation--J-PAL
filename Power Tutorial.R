@@ -367,11 +367,23 @@ write.csv(data_frame_excel_sorted, "bal_power_data_r.csv", sep = ",",
 # your plan to stratify, etc. For simplicity, we just randomize by grade-year in this
 # example and do not stratify (although the actual RCT did stratify).
 
+randomization <- function(testdataframe){
+  anyDuplicated(testdataframe$studentid)
+  set.seed(20110402)
+  testdataframe <- testdataframe[order(testdataframe$divid),]
+  testdataframe$random <- runif(nrow(testdataframe))
+  testdataframe <- testdataframe[order(testdataframe$random),]
+  testdataframe$index <- 1:nrow(testdataframe)
+  testdataframe$treatment <- as.numeric(testdataframe$index <= nrow(testdataframe) /2)
+  keeps <- c("divid", "treatment" )
+  data_frame_rand <- data.frame(testdataframe[,keeps, drop= FALSE])
+  write.csv(data_frame_rand, "rand.csv", sep = ",", 
+            row.names = FALSE, quote =FALSE, na= "NA") #giving a warning.
+  
+}
 
+####incomplete
 
-
-
-getwd()
 
 #end
 
