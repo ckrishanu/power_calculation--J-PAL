@@ -1,14 +1,13 @@
-# ------------------------------------------------------------------------------------
-  ##################################### Meta ##########################################
+##################################### Meta ##########################################
+
 # Power Calculations and simulations
 # Contributors: Krishanu Chakraborty
-# 27th November 2016
+# 4th January 2017
 # Original exercise in STATA written by John Tebes and Rohit Naimpally
-# Version of code : 1.0.0
+# Version of code : 1.1.0
 # R version : R version 3.3.2 (Sincere Pumpkin Patch)
 # Last edited by : Krishanu Chakraborty
-# ------------------------------------------------------------------------------------
-# ------------------------------------------------------------------------------------
+
 #################################### Introduction ###################################
 
 # Why are power calculations important?
@@ -18,7 +17,7 @@
 # with a potential research project.  For example, it may be that a remedial education
 # program boosts tests scores by 20 percent when comparing treatment and control groups,
 # but due to limited power, the RCT is unable to detect this true effect (with 95%
-#                                                                         confidence). However, we can estimate whether a given design is likely to be able to
+# confidence). However, we can estimate whether a given design is likely to be able to
 # detect a reasonable effect size ex ante, allowing us to properly manage partner
 # expectations and make the most of limited research resources.
 # 
@@ -28,8 +27,8 @@
 # Questions to consider before running power calculations
 # 
 # What is the main specification (e.g. regression) we plan to run? 
-# [It doesn't have to be fully baked, but the more "baked" it is, the more precise we can make your power
-#  estimates.]
+# [It doesn't have to be fully baked, but the more "baked" it is, the more precise we can make your 
+# power estimates.]
 # 
 # What do we expect to be the mean of the outcome in the control group?
 #  
@@ -50,7 +49,7 @@
 # Please install these packages if you do't have them.
 # install.packages(c("gdata","foreign", "Hmisc", "samplesize", "compute.es", "foreach", "ICC", 
 # "rjava", "xlsx", "ri", "stargazer", "clusterSEs", "broom", "dplyr", "randomizr"))
-# -----------------------------------------------------------------------------
+
 
 library(gdata)
 library(foreign)
@@ -68,20 +67,19 @@ library(broom)
 library(dplyr)
 library(randomizr)
 
+# Please ignore all warnings in loading the packages. 
+# Please note that some packages loaded have not been used in the code
 
-# Please ignore all warnings in loading the packages
 
-# ---------------------------------------------------------------------------------
 ############################### EXAMPLE 1: Basic Parametric Example ##############
-# ---------------------------------------------------------------------------------
 
 # Let's download the zip file containing the Stata do file and the dataset 
 # and unzip it to the working directory.
+
 getwd()
 setwd("D:/R/J-PAL Power Tutorial") # set working directory that you want to set
 
-download.file("https://www.povertyactionlab.org/sites/default/files/resources/Power-calculations-stata.zip"
-              , dest="dataset.zip", mode="wb")
+download.file("https://www.povertyactionlab.org/sites/default/files/resources/Power-calculations-stata.zip", dest="dataset.zip", mode="wb")
 
 unzip ("dataset.zip", exdir = getwd())
 
@@ -104,8 +102,12 @@ View(my_data_table)
 # population, to get an approximate for this outcome in the control group.
 
 my_sd <- sd((subset(my_data_table$post_totnorm, my_data_table$bal == 0)), na.rm = TRUE)
-my_sd
+
 my_control <- mean((subset(my_data_table$post_totnorm, my_data_table$bal == 0)), na.rm = TRUE)
+
+# checking the values of my_sd and my_control
+
+my_sd
 my_control
 
 # Let's say, based on other studies, that we expect an effect size of a tenth of a
@@ -127,14 +129,13 @@ my_sd
 # Calculate the sample size.
 # We can take a look at sample_calculation.R now to understand the fucntion
 
-
 source("sample_calculation.R")
 sampsi.mean(my_control,my_treat,sd = my_sd)
 
 # Say, instead, we knew the sample size and wanted to calculate the Minimum Detectable
 # Effect Size (MDE).You can  manually calculate the effect size
 
-sample_n <<- nA+nB
+sample_n <- nA+nB
 my_mde <- (0.842+1.96)*sqrt(1/0.25)*sqrt(1/(nA+nB))*my_sd
 my_mde
 
@@ -148,13 +149,12 @@ my_effect
 # Some other questions to answer before calculating power:
 #   - Will this study be cluster-randomized?
 #   - Will our main specification include controls (i.e. lagged dependent variables)?
-#   - Do we expect only part of the treatment group to take-up the intervention? If so, are
-#     we interested in estimating the local average treatment effect?
-#     We'll address each of these questions one at a time to see how they affect power
+#   - Do we expect only part of the treatment group to take-up the intervention? 
+#   If so, are we interested in estimating the local average treatment effect?
+#   We'll address each of these questions one at a time to see how they affect power
+ 
 
-# ----------------------------------------------------------------------------------------------
 ########################  EXAMPLE 2: Building Intuition #######################################
-# ----------------------------------------------------------------------------------------------
 
 # Now, let's get a better intuition on how a larger or smaller sample size affects our
 # power to pick up an effect.
@@ -191,10 +191,8 @@ new_sample <- 4*(3142) # Global n of the STATA exercise
 new_my_mde <- (0.842+1.96)*sqrt(1/0.25)*sqrt(1/(new_sample))*my_sd
 new_my_mde/my_mde
 
-# ---------------------------------------------------------------------------------------------
 #####################  EXAMPLE 3: Parametric Power Calculation with Controls ##################
-# ---------------------------------------------------------------------------------------------
- 
+
 # Now, say we plan to control for baseline covariates in our main specification.  The
 # inclusion of these controls will improve our power, since they explain some of the
 # variance in our outcome. For example, including prior test scores on the right-hand
@@ -218,25 +216,23 @@ new_my_mde/my_mde
 
 # Using Balsakhi data, this would be:
 
-
-my.data.frame <- as.data.frame(subset(my_data_table, my_data_table$bal == 0), na.rm = TRUE)
-lm1 <- lm(my.data.frame$post_totnorm ~ my.data.frame$pre_totnorm, data = my.data.frame,
-          na.action = na.exclude)
+lm1 <- lm(my_data_table$post_totnorm ~ my_data_table$pre_totnorm, subset = (my_data_table$bal==0))
 summary(lm1)
 
-predicted_lm1 <- predict(lm1)
-summary(lm1)
-res_my_sd <- sd(residuals(lm1), na.rm = TRUE)
+my_data_table$ypredicted <- lm1$coefficients[2]*my_data_table$pre_totnorm + lm1$coefficients[1]
 
-augment(lm1, lm1$)
+my_data_table$respredicted <- my_data_table$post_totnorm - my_data_table$ypredicted
 
-# If we knew the effect size and wanted to know the sample size needed.
-# The result is different from STATA because the res_my_sd value is not matching.
-# I guess this is because of the inherent calcualation types
+# An alternate longer way to do the same is
+# my.data.frame <- as.data.frame(subset(my_data_table, my_data_table$bal == 0))
+# lm1 <- lm(my.data.frame$post_totnorm ~ my.data.frame$pre_totnorm)
+
+res_my_sd <- sd(my_data_table$respredicted, na.rm = TRUE)
+
+# If we knew the effect size and wanted to know the sample size needed..
 
 source("sample_calculation.R")
-sampsi.mean(my_control,my_treat,sd = res_my_sd)
-sampsi.mean(my_control,my_treat, sd = 0.82548809) # hard-coded
+sampsi.mean(my_control,my_treat,sd = signif(res_my_sd, digits = 6))
 
 # Questions:
 #   
@@ -252,7 +248,7 @@ sampsi.mean(my_control,my_treat, sd = 0.82548809) # hard-coded
 
 # We must first guess the percentage of variance in outcome variables that we expect to
 # be explained by controls. (This can be done by looking at other datasets with similar
-#                            outcomes, etc.)
+# outcomes, etc.)
 # 
 # Say our controls explain 49% of the outcome. We can then calculate the residual
 # standard deviation as follows.
@@ -268,13 +264,14 @@ for (x in z)
 {
   new_x<-(1-x/100)
   new_res_my_sd <- sqrt(new_x*my_sd^2)
+  cat("The assumed percentage of variance explained by covariates = ", x, "\n")
   print(sampsi.mean(my_control,my_treat,sd = new_res_my_sd))
-  cat("the percentage of variance explained by covariates = ", x, "\n")
 }
 
-# -------------------------------------------------------------------------------------------------------------
-###########################  EXAMPLE 4: Parametric Power Calculation for Cluster-RCTs #########################
-# -------------------------------------------------------------------------------------------------------------
+# Please note that the code is the equivalent of the 
+# controlling_for_covariates.do file in STATA. There is no separate R script.
+
+##################  EXAMPLE 4: Parametric Power Calculation for Cluster-RCTs ###############
 
 
 # Many designs randomize at the group level instead of at the individual level. For such
@@ -307,6 +304,7 @@ for (x in z)
 # First, let's calculate the intra-cluster correlation (ICC) which measures how
 #     correlated the error terms of individuals in the same cluster are.
 
+my.data.frame <- as.data.frame(subset(my_data_table, my_data_table$bal == 0))
 my_icc_vec <- ICCest(my.data.frame$divid,my.data.frame$post_totnorm)
 my_rho <- as.numeric(my_icc_vec[1])
 
@@ -314,7 +312,7 @@ my_rho <- as.numeric(my_icc_vec[1])
 
 m <- as.numeric(53)
 
-# and the number of clusters (as documented in the Balsaki experiment).
+# and the number of clusters (as documented in the Balsakhi experiment).
 
 j <- as.numeric(193)
 
@@ -338,35 +336,36 @@ treated <- as.numeric(n*P)
 
 matrix_data <- c(.05, 0.8, my_rho,j, m, n, treated, my_control, my_sd, my_mde,
                  .05, 0.8, my_rho,j, m, n, treated, my_control, my_sd, my_mde_ldv)
-matrix_name <- list(c("No_controls", "Control_LDV"),c("Signif", "Power", "ICC", "Clusters", "Cluster_size", "N", "Treated",
-                      "Cntrl_mn", "Cntrl_SD", "MDE"))
+matrix_name <- list(c("No_controls", "Control_LDV"),c("Signif", "Power", "ICC", "Clusters", "Cluster_size", "N", "Treated", "Cntrl_mn", "Cntrl_SD", "MDE"))
 mde_clus <- matrix(data = matrix_data, nrow =2, ncol = 10, byrow = 2, dimnames = matrix_name  )
 mde_clus
 
 #  Part 2. Calculating Sample Size
 
-# In stata,sampclus command can be used in combination with the sampsi command used above
+# In STATA,sampclus command can be used in combination with the sampsi command used above
 # to incorporate clustering into our sample size calculations. A more parsimonious
 # alternative is the clustersampsi command. However, note that clustersampsi rounds the
 # group means to the tenth place after the decimal, making for a less precise
 # calculation.
-
-# sampsi and sampclus are emulated in sample_calucation.R
+# For R, please refer to the sample_calculation.R script for the emulation of the functions 
+# sampsi and sampclus 
 
 # adjust for the number of individuals per cluster.
 
 new_my_treat2 <- my_control + my_mde
+source("sample_calculation.R")
 sampsi.mean(my_control,new_my_treat2,sd = my_sd)
 samp.clus(nA, nB, my_rho, m)
 
 # If we include the lagged dependent variable as a control we have
 
 my_treat_ldv <- my_control + my_mde_ldv
+source("sample_calculation.R")
 sampsi.mean(my_control,my_treat_ldv,sd = res_my_sd )
 samp.clus(nA, nB, my_rho, m)
 
 # Note that again it doesn't matter if we start with the MDE, or with the sample size.
-# 
+
 # Questions:
 #  
 #    1. Why do we have to adjust power for clustering when running a cluster-RCT?
@@ -374,13 +373,10 @@ samp.clus(nA, nB, my_rho, m)
 #    2. Assuming ICC>0, does adding a new cluster of 5 individuals or adding 5 individuals
 #       to already-existing clusters give us more power to detect effects?
 
-# -----------------------------------------------------------------------------------------
 ############ EXAMPLE 5: Parametric Power Calculation with Partial Take-up #################
-# -----------------------------------------------------------------------------------------
 
 # In randomized designs, it is common that there is partial take-up of the intervention.
-# For example, in the Oregon Health Insurance Experiment (http://nber.org/oregon/), the offer to apply for health
-# insurance was associated with only a 25 percentage point increase in take-up of health
+# For example, in the Oregon Health Insurance Experiment (http://nber.org/oregon/), the offer to apply # for health insurance was associated with only a 25 percentage point increase in take-up of health
 # insurance. When take-up is not 100 percent, researchers are often interested in the
 # answers to second stage questions, such as what the average effect of becoming insured
 # is on health care utilization.
@@ -407,9 +403,9 @@ sampsi.mean(my_control, my_treat_adjusted, sd = my_sd)
 # Note: For more on partial take-up and how it affects estimation of the power to detect
 # local average treatment effects, please see the aforementioned article by Duflo et al.
 
-# ------------------------------------------------------------------------------------
+
 ####################### EXAMPLE 6: Non-parametric Power Simulations ##################
-# ------------------------------------------------------------------------------------
+
 
 # Non-parametric power simulations do better than parametric power calculations when we
 # have access to good data (historical, baseline, or pilot) on our study population. From
@@ -454,6 +450,8 @@ nrow(data_frame_excel_sorted)
 write.csv(data_frame_excel_sorted, "bal_power_data_r.csv", sep = ",", 
           row.names = FALSE, quote =FALSE, na= "NA") #giving a warning. Can be ignored
 
+data_frame_excel_sorted_ldv <- data_frame_excel_sorted
+
 # Step 2. Write randomization code as you plan to randomize.
 # Step 3. Write simulation code.
 # 
@@ -467,18 +465,20 @@ write.csv(data_frame_excel_sorted, "bal_power_data_r.csv", sep = ",",
 # (b) simulates treatment assignment and runs main regressions 1000 times,
 # 
 # (c) summarizes the results from these regressions into an easy-to-read matrix.
+#     (left as an exercise)
 # 
 # To reduce the run-time, we have set this program to run over 100 iterations,
 # but if you are truly calculating power via simulation, you should set this at 1000.
 
-alpha <- 0.05                                   # Standard significance level
+alpha <- 0.05                                    # Standard significance level
 sims <- 100                                      # Number of simulations to conduct
 
-#initialize a matrix to collect results
+# initialize a matrix to collect results. The matrix can be filed up by users according to their 
+# choice. and has been left as an exercise. For hint see the end of the file.
 
-colnames <- c("pvalue" , "tstat", "control_mean", "control_sd", "beta", "se", "ci_low", "ci_high")
-results <- matrix(nrow = sims, ncol = 8)
-colnames(results) <- colnames
+# colnames <- c("pvalue" , "tstat", "control_mean", "control_sd", "beta", "se", "ci_low", "ci_high")
+# results <- matrix(nrow = sims, ncol = 8)
+# colnames(results) <- colnames
 
 
 # Part 1. Basic MDE (clustering on divid because data is from C-RCT)  
@@ -495,7 +495,7 @@ colnames(results) <- colnames
     #Assign treatment
     
     Data$treatment <- cluster_ra(clust_var = clust_var)
-    View(Data)
+    # View(Data)
     
     # Do analysis (Simple regression)
     fit.sim <- lm(Data$post_totnorm ~ Data$treatment, data = Data, na.action = na.exclude)      
@@ -505,13 +505,12 @@ colnames(results) <- colnames
     print(output)
   }
 
-
 # Part 2. Controlling for LDV
 # loop to conduct experiments "sims" times over#
 
 for (i in 1:sims)
 {
-  Data.ldv <- as.data.frame(data_frame_excel_sorted, na.rm = TRUE)
+  Data.ldv <- as.data.frame(data_frame_excel_sorted_ldv, na.rm = TRUE)
   
   # We do a clustered random assignment using divid as the cluster
   
@@ -522,45 +521,38 @@ for (i in 1:sims)
   Data.ldv$treatment <- cluster_ra(clust_var = clust_var)
   
   # Do analysis (Simple regression)
-  fit.sim.ldv <- lm(Data$post_totnorm ~ Data$pre_totnorm, data = Data.ldv, na.action = na.exclude)      
+  fit.sim.ldv <- lm(Data.ldv$post_totnorm ~ Data.ldv$pre_totnorm + Data.ldv$treatment, data = Data.ldv, na.action = na.exclude)      
   # call for clsutered SE  by divid
   source("Clustered_SE.R")
-  output <- super.cluster.fun(fit.sim.ldv, Data.ldv$divid)
-  print(output)
+  output.ldv <- super.cluster.fun(fit.sim.ldv, Data.ldv$divid)
+  print(output.ldv)
 }
 
-
-# Since the Balsakhi dataset has many observations, we find that our simulated power estimates of MDE are very similar to those found through parametric estimates. To see
+# Since the Balsakhi dataset has many observations, we find that our simulated power estimates of MDE # are very similar to those found through parametric estimates. To see
 # this, compare Example 4 (parts 1 & 2) to Example 6 (parts 1 & 2).
 # 
-# As you can see, it is much easier to cluster or control for covariates using this method; you simply run the regression specification that you intend to use at the
-# analysis stage.
+# As you can see, it is much easier to cluster or control for covariates using this method; you simply # run the regression specification that you intend to use at the analysis stage.
 # 
-# Similarly, if you wanted to estimate the (local) average treatment effect in the presence of partial take-up of the intervention, then you can simply make basic
+# Similarly, if you wanted to estimate the (local) average treatment effect in the presence of partial # take-up of the intervention, then you can simply make basic
 # assumptions on the effective take-up rate, and run your two-stage least squares regression in Stata.
 # 
-# Generally speaking, parametric power calculations are great for back-of-the-envelope calculations of power, while non-parametric simulations provide more precise estimates
+# Generally speaking, parametric power calculations are great for back-of-the-envelope calculations of # power, while non-parametric simulations provide more precise estimates
 # of power when you have good baseline data.
 # 
 # Questions:
 #   
-#   1. How is "non-parametric" power different from "parametric" power?
+# 1. How is "non-parametric" power different from "parametric" power?
 # 
 # 2. How do our parametric and non-parametric estimates of power compare? (Hint: Compare Example 4 to Example 6.)
 # 
 # 3. When would you want to run parametric power calculations?
 # 
 # 4. Non-parametric simulations?
-# 
-# ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #   
-#   7. Answer Key
-# 
-# ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-#   
+########################## 7. Answer Key ############################################################
 #   Ex. 3, part 1:
 #   
-#   1. 49%
+# 1. 49%
 # 
 # 2. Including controls cuts sample size almost in half.
 # 
@@ -590,5 +582,50 @@ for (i in 1:sims)
 # specifications.
 
 
+######################### Hint for aggregating results of regression simluation ######################
+
+# Example is shown to tabulate the results of coeftest. Others can be done similarly
+
+ctdf=function(x){
+  rt=list()                             # generate empty results list
+  for(c in 1:dim(x)[2]) rt[[c]]=x[,c]   # writes column values of x to list
+  rt=as.data.frame(rt)                  # converts list to data frame object
+  names(rt)=names(x[1,])                # assign correct column names
+  rt[,"sig"]=symnum(rt$`Pr(>|z|)`, corr = FALSE, na = FALSE,cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1),symbols = c("***", "**", "*", ".", " "))
+  return(rt)
+}
+
+# simulation
+
+alpha <- 0.05                                    # Standard significance level
+sims <- 5                                      # Number of simulations to conduct
+
+for (i in 1:sims)
+{
+  Data <- as.data.frame(data_frame_excel_sorted, na.rm = TRUE)
+  
+  # We do a clustered random assignment using divid as the cluster
+  
+  clust_var <- with(Data, Data$divid)
+  
+  #Assign treatment
+  
+  Data$treatment <- cluster_ra(clust_var = clust_var)
+  # View(Data)
+  
+  # Do analysis (Simple regression)
+  fit.sim <- lm(Data$post_totnorm ~ Data$treatment, data = Data, na.action = na.exclude)      
+  # call for clsutered SE  by divid
+  source("Clustered_SE.R")
+  output <- super.cluster.fun(fit.sim, Data$divid)
+  print(output)
+  coef.data.frame <- rbind.data.frame(coef.data.frame,ctdf(output[[1]]))
+
+}
+
+# Similar data frames for aggregation can be made for other objects returned by super.cluster.fun,
+# namely w(wald test) and ci(confidence intervals). Instead of using a loop, the same functionality
+# can be achieved through apply family functions
 
 #end
+
