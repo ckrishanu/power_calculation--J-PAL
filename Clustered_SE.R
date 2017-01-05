@@ -2,7 +2,7 @@
 ##################################### Meta ##########################################
 # Clustered SE
 # Collaborators: Krishanu Chakraborty
-# 27th November 2016
+# 4th January 2017
 # Original exercise in STATA written by John Tebes and Rohit Naimpally
 # Based on Slawa Rokicki's blog : R for public health 
 # (http://rforpublichealth.blogspot.in/2014/10/easy-clustered-standard-errors-in-r.html)
